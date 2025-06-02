@@ -5,7 +5,7 @@ Preserves original file extension as metadata, enabling accurate recovery.
 
 ## Directory Structure
 ```
-FileCompressorZlib/
+PackerX/
 ├── compressor.cpp              # Compression logic
 ├── decompressor.cpp            # Decompression logic
 ├── compressed_output/          # Folder for storing compressed files
