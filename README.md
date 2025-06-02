@@ -17,7 +17,7 @@ FileCompressorZlib/
 
 Ensure you have a C++17-compatible compiler and `zlib` installed.
 
-### Compile Commands
+## Compile Commands
 
 1. Clone the repository.
 2. Compile the program using your C++ compiler, linking against the zlib library.
@@ -32,14 +32,14 @@ g++ -std=c++17 -o decompresso decompressor.cpp -lz
 ```
 4. Compressed file would be saved in folder `compressed_output`, while decompressed file would be saved in folder `decompresssed_output`.
 
-### Compression Output
+## Compression Output
 ```bash
 Compression successful!
 Output file: compressed_output/example1_compressed.bin
 Compressed size: 178 bytes
 ```
 
-### Decompression Output
+## Decompression Output
 ```bash
 Decompression successful!
 Output file: decompressed_output/example1_uncompressed.txt
