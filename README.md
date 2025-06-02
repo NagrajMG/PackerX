@@ -1,4 +1,4 @@
-# FileCompressorZlib
+# PackerX
 
 A lightweight C++ utility to **compress** and **decompress** files using `zlib`.  
 Preserves original file extension as metadata, enabling accurate recovery.
