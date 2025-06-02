@@ -53,7 +53,7 @@ Decompressed size: 422 bytes
   Retains original file extension as metadata for accurate decompression.
 
 - **Universal File Support**  
-  Works with any file type: `.txt`, `.csv`, `.exe`, etc.
+  Works with any file type: `.txt`, `.csv`, `.exe`,`.png`, `.pdf` etc.
 
 - **Robust Error Handling**  
   Gracefully handles:
