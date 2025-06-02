@@ -1,0 +1,24 @@
+# Compiled binary files
+compresso
+decompresso
+
+# Object files
+*.o
+*.obj
+
+# C++ cache and dependency files
+*.gch
+*.pch
+
+# VSCode settings
+.vscode/
+
+# Backup and temporary files
+*~
+*.bak
+*.tmp
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
