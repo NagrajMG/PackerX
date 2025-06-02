@@ -6,12 +6,12 @@ Preserves original file extension as metadata, enabling accurate recovery.
 ## Directory Structure
 ```
 FileCompressorZlib/
-├── compressor.cpp # Compression logic
-├── decompressor.cpp # Decompression logic
-├── compressed_output/ # Folder for storing compressed files
-├── decompressed_output/ # Folder for storing decompressed files
-├── README.md # This file
-└── input_files/ # Folder for original input files
+├── compressor.cpp              # Compression logic
+├── decompressor.cpp            # Decompression logic
+├── compressed_output/          # Folder for storing compressed files
+├── decompressed_output/        # Folder for storing decompressed files
+├── README.md                   # Current file
+└── input_files/                # Folder for original input files
 ```
 ## Build Instructions
 
