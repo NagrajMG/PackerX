@@ -4,7 +4,7 @@ A lightweight C++ utility to **compress** and **decompress** files using `zlib`.
 Preserves original file extension as metadata, enabling accurate recovery.
 
 ## Directory Structure
-
+```
 FileCompressorZlib/
 ├── compressor.cpp # Compression logic
 ├── decompressor.cpp # Decompression logic
@@ -12,7 +12,7 @@ FileCompressorZlib/
 ├── decompressed_output/ # Folder for storing decompressed files
 ├── README.md # This file
 └── input_files/ # Folder for original input files
-
+```
 ## Build Instructions
 
 Ensure you have a C++17-compatible compiler and `zlib` installed.
@@ -32,14 +32,14 @@ g++ -std=c++17 -o decompresso decompressor.cpp -lz
 ```
 4. Compressed file would be saved in folder `compressed_output`, while decompressed file would be saved in folder `decompresssed_output`.
 
-## Compression Output
+## Compression Output: Example
 ```bash
 Compression successful!
 Output file: compressed_output/example1_compressed.bin
 Compressed size: 178 bytes
 ```
 
-## Decompression Output
+## Decompression Output: Example
 ```bash
 Decompression successful!
 Output file: decompressed_output/example1_uncompressed.txt
@@ -66,6 +66,5 @@ Decompressed size: 422 bytes
   `[1-byte extension length][extension][compressed binary data]`
 
 - **Organized Output**  
-  Auto-creates:
-  - `compressed_output/` for compressed `.bin` files
-  - `decompressed_output/` for restored files
+  - `compressed_output/` for compressed `.bin` files.
+  - `decompressed_output/` for restored files.
