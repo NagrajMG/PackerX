@@ -1,50 +1,53 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <cstring>
+#include <iomanip>
 #include <zlib.h>
+#include <openssl/sha.h>
+namespace fs = std::filesystem;
 
-std::vector<unsigned char> decompressFile(const std::string& filename, std::string& recoveredExtension){
-    std::ifstream file(filename, std::ios::binary);
+std::string sha256(const std::string& input) {
+    const std::string salt = "$packerx_";
+    std::string salted = salt + input;
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(salted.c_str()), salted.size(), hash);
+    std::ostringstream ss;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    return ss.str();
+}
+
+std::vector<unsigned char> decompressFile(const std::string& fullPath, std::string& recoveredExtension) {
+    std::ifstream file(fullPath, std::ios::binary);
     if (!file) {
-        std::cerr << "Ran into error: Opening file: "<< filename << std::endl;
+        std::cerr <<"Ran into error: Opening file: " << fullPath << std::endl;
         return {};
     }
-    std::vector<unsigned char> compressedData(std::istreambuf_iterator<char>(file), {});
-    file.close();
-    
+
+    std::vector<unsigned char> compressedData((std::istreambuf_iterator<char>(file)), {});
+
     if (compressedData.empty()) {
-        std::cerr << "Oops! Received an empty file." << std::endl;
+        std::cerr << "Empty file." << std::endl;
         return {};
     }
-    // Extract metadata
+
     size_t extLength = compressedData[0];
-    if (extLength + 1 > compressedData.size()) {
-        std::cerr << "Invalid metadata in file." << std::endl;
-        return {};
-    }
-
     recoveredExtension = std::string(compressedData.begin() + 1, compressedData.begin() + 1 + extLength);
-
-    // Extract actual compressed data
     std::vector<unsigned char> actualData(compressedData.begin() + 1 + extLength, compressedData.end());
-
-    // Try to guess initial uncompressed size (start with 4× compressed size)
     uLongf destSize = actualData.size() * 4;
     std::vector<unsigned char> uncompressedData(destSize);
-
     int result = uncompress(uncompressedData.data(), &destSize, actualData.data(), actualData.size());
-
-    // If too small, try again with 8× size
+    
     if (result == Z_BUF_ERROR) {
-        destSize = actualData.size() * 8;
+        destSize *= 2;
         uncompressedData.resize(destSize);
         result = uncompress(uncompressedData.data(), &destSize, actualData.data(), actualData.size());
     }
 
     if (result != Z_OK) {
-        std::cerr << "Decompression failed (zlib error code: " << result << ")" << std::endl;
+        std::cerr << "Decompression failed, code: " << result << std::endl;
         return {};
     }
 
@@ -54,33 +57,30 @@ std::vector<unsigned char> decompressFile(const std::string& filename, std::stri
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        // If not, print usage instructions
-        std::cerr << "Usage: " << argv[0] << " <compressed_file_path>" << std::endl;
-        // Exit the program with an error code
+        std::cerr << "Usage: decompress <original_filename>" << std::endl;
         return 1;
     }
-    std::string filepath = argv[1];
+
+    std::string Filename = argv[1];
+    std::string ogFilename = fs::path(Filename).stem().string(); 
+    std::string hashedName = sha256(ogFilename); // hash of original filename
+    std::string inputFile = "compressed_output/" + hashedName + ".bin";
+
     std::string recoveredExt;
-    std::vector<unsigned char> decompressedData = decompressFile(filepath, recoveredExt);
+    std::vector<unsigned char> decompressedData = decompressFile(inputFile, recoveredExt);
     if (decompressedData.empty()) {
-        std::cerr << "Failed to de-compress file." << std::endl;
+        std::cerr << "Decompression failed." << std::endl;
         return 1;
     }
-    // Build output filename
-    std::string baseName = filepath.substr(filepath.find_last_of("/\\") + 1);
-    size_t pos = baseName.find("_compressed.bin");
-    std::string nameBase = (pos != std::string::npos) ? baseName.substr(0, pos) : "restored_file";
-    std::string outputFile = "decompressed_output/" + nameBase + "_uncompressed." + recoveredExt;
-    std::ofstream out(outputFile, std::ios::binary);
-    if (!out) {
-        std::cerr << "Could not write to output file: " << outputFile << std::endl;
-        return 1;
-    }
+
+    std::string outPath = "decompressed_output/" + ogFilename + "_restored." + recoveredExt;
+    std::ofstream out(outPath, std::ios::binary);
     out.write(reinterpret_cast<const char*>(decompressedData.data()), decompressedData.size());
     out.close();
+
     // Terminal output
     std::cout << "Decompression successful!" << std::endl;
-    std::cout << "Output file: " << outputFile << std::endl;
     std::cout << "Original extension: ." << recoveredExt << std::endl;
     std::cout << "Decompressed size: " << decompressedData.size() << " bytes" << std::endl;
+    return 0;
 }

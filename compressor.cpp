@@ -4,16 +4,30 @@
 #include <vector>
 #include <zlib.h>
 #include <filesystem>
+#include <sstream>
+#include <iomanip>
+#include <openssl/sha.h>
 namespace fs = std::filesystem;
 
+// Generate salted SHA-256 hash for deterministic hashed filename
+std::string sha256(const std::string& input) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), hash);
+    std::stringstream ss;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    return ss.str();
+}
+
+// Compress a file and return the compressed byte vector
 std::vector<unsigned char> compressFile(const std::string& filename) {
-    // for reading the file as it is, use binary.
+
     std::ifstream file(filename, std::ios::binary);
     if (!file) {
         std::cerr << "Ran into error: Opening file: " << filename << std::endl;
         return {};
     }
-    // Read file contents into a buffer till the end of file
+
     std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(file), {});
 
     // Checking if the file is empty
@@ -21,10 +35,10 @@ std::vector<unsigned char> compressFile(const std::string& filename) {
         std::cerr << "Oops! Received an empty file." << std::endl;
         return {};
     }
-    // Compress the buffer
-    uLong sourceSize = static_cast<uLong>(buffer.size());  // zlib demands uLong -- size of original source
-    uLong destSize = compressBound(sourceSize);            // worst case size for compressed data
-    std::vector<unsigned char> compressed(destSize);       // Memory for compressed result
+
+    uLong sourceSize = static_cast<uLong>(buffer.size());
+    uLong destSize = compressBound(sourceSize);
+    std::vector<unsigned char> compressed(destSize);
 
     int result = compress(compressed.data(), &destSize, buffer.data(), sourceSize);
 
@@ -47,78 +61,63 @@ std::vector<unsigned char> compressFile(const std::string& filename) {
     }
     return {};
     }
-    // Resize the compressed buffer to the actual compressed size
+
     compressed.resize(destSize);
 
     return compressed;
 }
 
-// Utility to generate output filename without special characters
-std::string makeOutputFilename(const std::string& filepath) {
-    size_t slash = filepath.find_last_of("/\\");
-    std::string filename = (slash == std::string::npos) ? filepath : filepath.substr(slash + 1);
 
-    size_t dot = filename.find_last_of('.');
-    std::string base = (dot == std::string::npos) ? filename : filename.substr(0, dot);
-
-    return base + "_compressed.bin";  
-}
-
-// Check if the user provided a file path as a command-line argument
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        // If not, print usage instructions
-        std::cerr << "Usage: " << argv[0] << " <file_path_to_compress>" << std::endl;
-        // Exit the program with an error code
+        std::cerr << "Usage: " << argv[0] << " <file_to_compress>" << std::endl;
         return 1;
     }
-
-    /*
-    Arguments from command line
-    argv[0] ./file_compression
-    argv[1] filename
-    */
-
     std::string filepath = argv[1];
+    std::string filenameOnly = fs::path(filepath).stem().string(); 
 
-    // Extract file extension (metadata)
-    std::string extension;
-    size_t dotPos = filepath.find_last_of('.');
-    if (dotPos != std::string::npos)
-        extension = filepath.substr(dotPos + 1);  // e.g., "txt"
-    else
-        extension = "bin";  // fallback if no extension
+    // Generate SHA-256 hash from salted filename
+    std::string salted = "$packerx_" + filenameOnly;
+    std::string hashedName = sha256(salted);
+
+    // Extract extension
+    std::string extension = fs::path(filepath).extension().string();
+
+    if (!extension.empty() && extension[0] == '.')
+        extension = extension.substr(1);
+    if (extension.empty())
+        extension = "bin";
 
     std::vector<unsigned char> compressedData = compressFile(filepath);
-    if (compressedData.empty()) {
-        std::cerr << "Failed to compress file." << std::endl;
-        return 1;
-    }
-    // Prepare metadata
+
+    if (compressedData.empty()) return 1;
+
+    //Prepare output: [extLen][ext][compressedData]
     unsigned char extLen = static_cast<unsigned char>(extension.length());
     std::vector<unsigned char> finalOutput;
-    finalOutput.push_back(extLen);  // 1-byte length prefix
-    finalOutput.insert(finalOutput.end(), extension.begin(), extension.end()); // metadata
-    finalOutput.insert(finalOutput.end(), compressedData.begin(), compressedData.end()); // data
+    finalOutput.push_back(extLen);
+    finalOutput.insert(finalOutput.end(), extension.begin(), extension.end());
+    finalOutput.insert(finalOutput.end(), compressedData.begin(), compressedData.end());
 
-    // output filename
+    //Write to compressed_output/<hash>.bin
     std::string outputFolder = "compressed_output";
-    std::string outputFilename = makeOutputFilename(filepath);
-    std::string fullOutputPath = outputFolder + "/" + outputFilename;
-    std::ofstream outFile(fullOutputPath, std::ios::binary);
-    
-    if (!outFile) {
-        std::cerr << "Could not create output file: " << fullOutputPath << std::endl;
+    std::string fullOutputPath = outputFolder + "/" + hashedName + ".bin";
+
+    std::ofstream out(fullOutputPath, std::ios::binary);
+    if (!out) {
+        std::cerr << "Failed to create output file: " << fullOutputPath << std::endl;
         return 1;
     }
 
-    outFile.write(reinterpret_cast<const char*>(finalOutput.data()), finalOutput.size());
-    outFile.close();
+    out.write(reinterpret_cast<const char*>(finalOutput.data()), finalOutput.size());
+    out.close();
 
-    std::cout << "Compression successful!" << std::endl;
-    std::cout << "Output file: " << fullOutputPath << std::endl;
-    std::cout << "Compressed size: " << finalOutput.size() << " bytes" << std::endl;
+    std::cout << "Compression complete.\n";
+    std::cout << "Output: " << fullOutputPath << "\n";
+    std::cout << "SHA-256 (salted): " << hashedName << "\n";
+    std::cout << "Extension embedded: ." << extension << "\n";
+    std::cout << "Original size: " << fs::file_size(filepath) << " bytes\n";
+    std::cout << "Compressed size: " << finalOutput.size() << " bytes\n";
 
     return 0;
-
-}    
+}
