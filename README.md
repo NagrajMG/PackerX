@@ -16,7 +16,7 @@ PackerX/
 ## Build Instructions
 
 Ensure you have a C++17-compatible compiler.
-`zlib` and `OpenSSL` installed (libssl-dev on Ubuntu / brew install openssl on macOS)
+`zlib` and `OpenSSL` installed (`libssl-dev` on Ubuntu / `brew install openssl` on macOS)
 
 ### Compile Commands
 
