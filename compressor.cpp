@@ -15,6 +15,7 @@ std::string sha256(const std::string& input) {
     const std::string salt = "$packerx_";
     std::string salted = salt + input;
     unsigned char hash[SHA256_DIGEST_LENGTH];
+    // the SHA256 function from OpenSSL expects const unsigned char* as input
     SHA256(reinterpret_cast<const unsigned char*>(salted.c_str()), salted.size(), hash);
     std::ostringstream ss;
     for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
